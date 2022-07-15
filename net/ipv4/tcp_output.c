@@ -3834,6 +3834,7 @@ int tcp_connect(struct sock *sk)
 
 	tcp_connect_init(sk);
 
+	//申请 skb 并构造为一个 SYN 包
 	if (unlikely(tp->repair)) {
 		tcp_finish_connect(sk, NULL);
 		return 0;
@@ -3846,10 +3847,13 @@ int tcp_connect(struct sock *sk)
 	tcp_init_nondata_skb(buff, tp->write_seq++, TCPHDR_SYN);
 	tcp_mstamp_refresh(tp);
 	tp->retrans_stamp = tcp_time_stamp(tp);
+	
+	//添加到发送队列 sk_write_queue 上
 	tcp_connect_queue_skb(sk, buff);
 	tcp_ecn_send_syn(sk, buff);
 	tcp_rbtree_insert(&sk->tcp_rtx_queue, buff);
 
+	//实际发出 syn
 	/* Send off SYN; include data in Fast Open. */
 	err = tp->fastopen_req ? tcp_send_syn_data(sk, buff) :
 	      tcp_transmit_skb(sk, buff, 1, sk->sk_allocation);
@@ -3868,6 +3872,11 @@ int tcp_connect(struct sock *sk)
 	}
 	TCP_INC_STATS(sock_net(sk), TCP_MIB_ACTIVEOPENS);
 
+	//启动重传定时器
+	//
+	// 总结一下，客户端在 connect 的时候，把本地 socket 
+	// 状态设置成了 TCP_SYN_SENT，选了一个可用的端口，
+	// 接着发出 SYN 握手请求并启动重传定时器。
 	/* Timer for repeating the SYN until an answer. */
 	inet_csk_reset_xmit_timer(sk, ICSK_TIME_RETRANS,
 				  inet_csk(sk)->icsk_rto, TCP_RTO_MAX);

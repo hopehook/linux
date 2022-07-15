@@ -272,7 +272,10 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	 * lock select source port, enter ourselves into the hash tables and
 	 * complete initialization after this.
 	 */
+    //设置 socket 状态为 TCP_SYN_SENT
 	tcp_set_state(sk, TCP_SYN_SENT);
+
+	//动态选择一个端口
 	err = inet_hash_connect(tcp_death_row, sk);
 	if (err)
 		goto failure;
@@ -310,8 +313,8 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	if (err)
 		goto failure;
 
+	//函数用来根据 sk 中的信息，构建一个完成的 syn 报文，并将它发送出去。
 	err = tcp_connect(sk);
-
 	if (err)
 		goto failure;
 
